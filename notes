@@ -1,0 +1,14 @@
+Leaflet
+  Layers:
+    Interstates
+    Counties
+    Heatmap
+
+Map with interstates
+  open street map?
+
+County geojson
+  https://github.com/deldersveld/topojson/tree/master/countries/us-states
+  d3 chlorepleth
+
+d3 heat map?
