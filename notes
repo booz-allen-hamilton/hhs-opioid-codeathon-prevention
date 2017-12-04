@@ -9,6 +9,6 @@ Map with interstates
 
 County geojson
   https://github.com/deldersveld/topojson/tree/master/countries/us-states
-  d3 chlorepleth
+  d3 choropleth
 
 d3 heat map?
