@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import L from 'leaflet';
 import * as d3 from 'd3';
 import * as topojson from 'topojson';
-import { interpolatePRGn } from 'd3-scale-chromatic';
+import { interpolatePiYG } from 'd3-scale-chromatic';
 
 const kentucky = require('../data/KY-21-kentucky-counties.json');
 const ohio = require('../data/OH-39-ohio-counties.json');
@@ -12,17 +12,26 @@ const westVirginia = require('../data/WV-54-west-virginia-counties.json');
 export default class Map extends Component {
   constructor() {
     super();
-    console.log(d3);
     this.updateSvg = this.updateSvg.bind(this);
   }
+
   componentWillReceiveProps(newProps) {
     console.log('received props');
     console.log(newProps);
+
+    if (newProps.menu.a && newProps.menu.b) {
+      if (
+        newProps.menu.a.value !== this.props.menu.a.value ||
+        newProps.menu.b.value !== this.props.menu.b.value
+      ) {
+        // New change!
+        console.log('the filter changed');
+        this.repaint();
+      }
+    }
   }
 
   shouldComponentUpdate(newProps) {
-    console.log('newProps');
-    console.log(newProps);
     return false;
   }
 
@@ -66,12 +75,11 @@ export default class Map extends Component {
   createCounties() {
     this.g.append('g')
       .attr('class', 'counties')
-    .selectAll('path')
-    .data(this.data)
+    .selectAll('.county')
+    .data(this.data, ({ properties }) => `${properties.STATEFP}-${properties.COUNTYFP}`)
     .enter().append('path')
       .attr('fill', (d) => {
-        return interpolatePRGn(Math.random());
-        // return 'white';
+        return interpolatePiYG(Math.random());
       })
       .attr('class', 'county')
       .attr('d', this.path);
@@ -85,7 +93,6 @@ export default class Map extends Component {
 
   updateSvg() {
     const getBounds = () => {
-      console.log(this);
       let bounds;
       this.data.forEach((datum, i) => {
         if (i === 0) {
@@ -115,6 +122,22 @@ export default class Map extends Component {
 
     // redraw paths
     this.g.selectAll('path')
+      .attr('d', this.path);
+  }
+
+  repaint() {
+    // this.updateSvg();
+    const join = this.g.select('.counties')
+      .selectAll('.county')
+      .data(this.data, ({ properties }) => `${properties.STATEFP}-${properties.COUNTYFP}`);
+  
+    join.exit().remove();
+
+    join.enter().append('path').attr('class', 'county')
+      .merge(join)
+      .attr('fill', (d) => {
+        return interpolatePiYG(Math.random());
+      })
       .attr('d', this.path);
   }
 

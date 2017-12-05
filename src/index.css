@@ -8,6 +8,10 @@ body {
   height: 64px;
 }
 
+.header > h1 {
+  margin-left: 15vh;
+}
+
 .map-wrapper {
   height: calc(100vh - 66px);
 }
