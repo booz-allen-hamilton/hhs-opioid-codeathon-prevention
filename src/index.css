@@ -9,7 +9,7 @@ body {
 }
 
 .header > h1 {
-  margin-left: 15vh;
+  margin-left: 5vw;
 }
 
 .map-wrapper {
@@ -20,15 +20,24 @@ body {
   height: 100%;
 }
 
-.counties {
+.leaflet-zoom-hide {
+  pointer-events: all;
 }
 
-.county {
+.counties {
+  z-index: 250;
+  pointer-events: all;
+}
+
+g.counties > .county {
+  z-index: 300;
   stroke: black;
   stroke-width: 1px;
   opacity: 0.6;
+
+  pointer-events: all;
 }
 
-.county:hover {
+g.counties > .county:hover {
   cursor: pointer !important;
 }

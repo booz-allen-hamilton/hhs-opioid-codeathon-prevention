@@ -1,37 +1,30 @@
 import React from 'react';
 import Select from 'react-select';
 import 'react-select/dist/react-select.css';
+import { menuOptions } from '../constants';
 
-const Menu = ({menu, handleChangeA, handleChangeB}) => (
+const Menu = ({menu, handleChangeType, handleChangeTime}) => (
   <div className="menu">
     <div className="form-group">
       <label>
-        A
+        type
       </label>
       <Select
         name="form-a"
-        value={menu.a}
-        onChange={handleChangeA}
-        options={[
-          { value: 1, label: 'one' },
-          { value: 2, label: 'two' },
-          { value: 3, label: 'three' },
-        ]}
+        value={menu.type}
+        onChange={handleChangeType}
+        options={menuOptions.type}
       />
     </div>
     <div className="form-group">
       <label>
-        B
+        time
       </label>
       <Select
         name="form-b"
-        value={menu.b}
-        onChange={handleChangeB}
-        options={[
-          { value: 'A', label: 'A' },
-          { value: 'B', label: 'B' },
-          { value: 'C', label: 'C' },
-        ]}
+        value={menu.time}
+        onChange={handleChangeTime}
+        options={menuOptions.time}
       />
     </div>
   </div>

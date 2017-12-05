@@ -1,29 +1,29 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Menu from '../components/Menu';
-import { menuA, menuB } from '../actions';
+import { menuTime, menuType } from '../actions';
 
 class MenuContainer extends Component {
   constructor() {
     super();
 
-    this.handleChangeA = this.handleChangeA.bind(this);
-    this.handleChangeB = this.handleChangeB.bind(this);
+    this.handleChangeType = this.handleChangeType.bind(this);
+    this.handleChangeTime = this.handleChangeTime.bind(this);
   }
 
-  handleChangeA(selected) {
-    this.props.dispatch(menuA(selected));
+  handleChangeTime(selected) {
+    this.props.dispatch(menuTime(selected));
   }
 
-  handleChangeB(selected) {
-    this.props.dispatch(menuB(selected));
+  handleChangeType(selected) {
+    this.props.dispatch(menuType(selected));
   }
 
   render() {
     const props = {
       ...this.props,
-      handleChangeA: this.handleChangeA,
-      handleChangeB: this.handleChangeB,
+      handleChangeTime: this.handleChangeTime,
+      handleChangeType: this.handleChangeType,
     }
     return <Menu {...props}/>
   }

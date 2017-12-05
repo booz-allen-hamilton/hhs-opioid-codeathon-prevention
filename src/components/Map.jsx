@@ -1,28 +1,35 @@
 import React, { Component } from 'react';
 import L from 'leaflet';
 import * as d3 from 'd3';
-import * as topojson from 'topojson';
-import { interpolatePiYG } from 'd3-scale-chromatic';
+import { interpolateYlOrRd } from 'd3-scale-chromatic';
 
-const kentucky = require('../data/KY-21-kentucky-counties.json');
-const ohio = require('../data/OH-39-ohio-counties.json');
-const virginia = require('../data/VA-51-virginia-counties.json');
-const westVirginia = require('../data/WV-54-west-virginia-counties.json');
+const supply = require('../data/supply.json');
+const maxSupply = {"maxIncidents":4776,"maxIncidentsMonthly":51,"maxGrams":64702.95599999869,"maxGramsMonthly":2156.083};
+
+const concatCode = ({ properties }) => `${properties.STATEFP}${properties.COUNTYFP}`;
 
 export default class Map extends Component {
   constructor() {
     super();
     this.updateSvg = this.updateSvg.bind(this);
+    this.fill = this.fill.bind(this);
+  }
+
+  getVal(d) {
+    return d.properties.totals.incidents / maxSupply.maxIncidents;
   }
 
   componentWillReceiveProps(newProps) {
     console.log('received props');
     console.log(newProps);
 
-    if (newProps.menu.a && newProps.menu.b) {
+    if (newProps.menu.type && newProps.menu.time) {
       if (
-        newProps.menu.a.value !== this.props.menu.a.value ||
-        newProps.menu.b.value !== this.props.menu.b.value
+        (!this.props.menu.type || !this.props.menu.time) ||
+        (
+          newProps.menu.time.value !== this.props.menu.time.value ||
+          newProps.menu.type.value !== this.props.menu.type.value
+        )
       ) {
         // New change!
         console.log('the filter changed');
@@ -37,10 +44,7 @@ export default class Map extends Component {
 
   componentDidMount() {
     this.data = [
-      ...topojson.feature(kentucky, kentucky.objects.cb_2015_kentucky_county_20m).features,
-      ...topojson.feature(ohio, ohio.objects.cb_2015_ohio_county_20m).features,
-      ...topojson.feature(virginia, virginia.objects.cb_2015_virginia_county_20m).features,
-      ...topojson.feature(westVirginia, westVirginia.objects.cb_2015_west_virginia_county_20m).features,
+      ...supply
     ];
 
     this.createMap();
@@ -75,20 +79,18 @@ export default class Map extends Component {
   createCounties() {
     this.g.append('g')
       .attr('class', 'counties')
-    .selectAll('.county')
-    .data(this.data, ({ properties }) => `${properties.STATEFP}-${properties.COUNTYFP}`)
-    .enter().append('path')
-      .attr('fill', (d) => {
-        return interpolatePiYG(Math.random());
-      })
-      .attr('class', 'county')
-      .attr('d', this.path);
+      .selectAll('.county')
+      .data(this.data, concatCode)
+      .enter().append('path')
+        .attr('class', 'county')
+        .attr('d', this.path);
 
     // when leaflet zooms or pans, we need to redraw the paths
     this.map.on('zoomend', this.updateSvg);
     this.map.on('moveend', this.updateSvg);
 
     this.updateSvg();
+    this.repaint();
   }
 
   updateSvg() {
@@ -127,18 +129,41 @@ export default class Map extends Component {
 
   repaint() {
     // this.updateSvg();
+    this.updateFuncs();
+
     const join = this.g.select('.counties')
       .selectAll('.county')
-      .data(this.data, ({ properties }) => `${properties.STATEFP}-${properties.COUNTYFP}`);
+      .data(this.data, concatCode);
   
     join.exit().remove();
 
-    join.enter().append('path').attr('class', 'county')
+    join.enter().append('path')
+      .attr('class', 'county')
       .merge(join)
-      .attr('fill', (d) => {
-        return interpolatePiYG(Math.random());
-      })
+      .attr('fill', this.fill)
+      .on('click', this.props.handleCountyClick)
       .attr('d', this.path);
+  }
+
+  updateFuncs() {
+    if (this.props.menu.time.value === 'sum') {
+      if (this.props.menu.type.value === 'incidents') {
+        this.getVal = (d) => d.properties.totals.incidents / maxSupply.maxIncidents;
+      } else {
+        this.getVal = (d) => d.properties.totals.grams / maxSupply.maxGrams;
+      }
+    } else {
+      // monthly
+      if (this.props.menu.type.value === 'incidents') {
+        this.getVal = (d) => d.properties.timedData[this.props.currentTime].incidents / maxSupply.maxIncidentsMonthly;
+      } else {
+        this.getVal = (d) => d.properties.timedData[this.props.currentTime].grams/ maxSupply.maxGramsMonthly;
+      }
+    }
+  }
+
+  fill(d) {
+    return interpolateYlOrRd(this.getVal(d));
   }
 
   render() {

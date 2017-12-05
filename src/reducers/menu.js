@@ -1,19 +1,20 @@
-import { MENU_A, MENU_B } from '../actions';
+import { MENU_TIME, MENU_TYPE } from '../actions';
+import { menuOptions } from '../constants';
 
 const menu = (state = {
-  a: { value: 1, label: 'one' },
-  b: { value: 'A', label: 'A' },
+  type: menuOptions.type[0],
+  time: menuOptions.time[0],
 }, action) => {
   switch (action.type) {
-    case MENU_A: 
+    case MENU_TYPE: 
       return {
         ...state,
-        a: action.payload
+        type: action.payload
       }
-    case MENU_B: 
+    case MENU_TIME: 
       return {
         ...state,
-        b: action.payload
+        time: action.payload
       }
     default:
       return state;

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Menu from '../containers/Menu';
+import Display from '../containers/Display';
 import MapLeaflet from '../containers/Map';
 
 export default class Dashboard extends Component {
@@ -14,6 +15,7 @@ export default class Dashboard extends Component {
         <div className="row">
           <div className="col-12 col-lg-2">
             <Menu />
+            <Display />
           </div>
           <div className="col-12 col-lg-10">
             <MapLeaflet />
