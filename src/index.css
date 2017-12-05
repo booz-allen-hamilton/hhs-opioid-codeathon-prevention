@@ -3,3 +3,28 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
+
+.header {
+  height: 64px;
+}
+
+.map-wrapper {
+  height: calc(100vh - 66px);
+}
+
+.map {
+  height: 100%;
+}
+
+.counties {
+}
+
+.county {
+  stroke: black;
+  stroke-width: 1px;
+  opacity: 0.6;
+}
+
+.county:hover {
+  cursor: pointer !important;
+}
