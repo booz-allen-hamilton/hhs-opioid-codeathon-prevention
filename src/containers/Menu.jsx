@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Menu from '../components/Menu';
-import { menuTime, menuType } from '../actions';
+import { menuTime, menuType, wheel, setWheel } from '../actions';
+import { calcMonth } from '../utilities';
 
 class MenuContainer extends Component {
   constructor() {
@@ -9,6 +10,27 @@ class MenuContainer extends Component {
 
     this.handleChangeType = this.handleChangeType.bind(this);
     this.handleChangeTime = this.handleChangeTime.bind(this);
+    this.handleScroll = this.handleScroll.bind(this);
+    this.handleProgressClick = this.handleProgressClick.bind(this);
+
+    this.setUpScroll()
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('wheel', this.handleScroll);
+  }
+
+  setUpScroll() {
+    document.addEventListener('wheel', this.handleScroll)
+  }
+
+  handleScroll(e) {
+    e.preventDefault();
+    this.props.dispatch(wheel(e.deltaY));
+  }
+
+  handleProgressClick(e) {
+    this.props.dispatch(setWheel(1000 * (e.clientX - this.progressElement.offsetLeft - 1) / this.progressElement.clientWidth));
   }
 
   handleChangeTime(selected) {
@@ -19,11 +41,19 @@ class MenuContainer extends Component {
     this.props.dispatch(menuType(selected));
   }
 
+  calcWidth(wheel) {
+    return `${wheel/10}%`;
+  }
+
   render() {
     const props = {
       ...this.props,
+      month: calcMonth(this.props.menu.wheel),
+      progressWidth: this.calcWidth(this.props.menu.wheel),
       handleChangeTime: this.handleChangeTime,
       handleChangeType: this.handleChangeType,
+      handleProgressClick: this.handleProgressClick,
+      progressRef: el => this.progressElement = el,
     }
     return <Menu {...props}/>
   }

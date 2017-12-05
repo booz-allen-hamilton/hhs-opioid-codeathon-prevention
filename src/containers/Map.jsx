@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import MapLeaflet from '../components/Map';
 import { county } from '../actions';
+import { calcMonth } from '../utilities';
+import MapLeaflet from '../components/Map';
 
 class MapContainer extends Component {
   constructor() {
@@ -25,7 +26,7 @@ class MapContainer extends Component {
 
 const mapStateToProps = (state) => ({
   menu: state.menu,
-  currentTime: '2015-01',
+  currentTime: calcMonth(state.menu.wheel),
 });
 
 export default connect(mapStateToProps)(MapContainer);

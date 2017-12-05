@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import L from 'leaflet';
 import * as d3 from 'd3';
+import * as d3Legend from 'd3-svg-legend';
 import { interpolateYlOrRd } from 'd3-scale-chromatic';
 
 const supply = require('../data/supply.json');
@@ -19,26 +20,20 @@ export default class Map extends Component {
     return d.properties.totals.incidents / maxSupply.maxIncidents;
   }
 
-  componentWillReceiveProps(newProps) {
-    console.log('received props');
-    console.log(newProps);
-
+  shouldComponentUpdate(newProps) {
     if (newProps.menu.type && newProps.menu.time) {
       if (
-        (!this.props.menu.type || !this.props.menu.time) ||
-        (
+        (!this.props.menu.type || !this.props.menu.time) || (
           newProps.menu.time.value !== this.props.menu.time.value ||
           newProps.menu.type.value !== this.props.menu.type.value
         )
       ) {
         // New change!
-        console.log('the filter changed');
-        this.repaint();
+        this.repaint(newProps);
+      } else if ((newProps.currentTime !== this.props.currentTime) && newProps.menu.time && newProps.menu.time.value === 'monthly') {
+        this.repaint(newProps);
       }
     }
-  }
-
-  shouldComponentUpdate(newProps) {
     return false;
   }
 
@@ -49,6 +44,7 @@ export default class Map extends Component {
 
     this.createMap();
     this.createCounties();
+    this.createLegend();
   }
 
   createMap() {
@@ -90,7 +86,28 @@ export default class Map extends Component {
     this.map.on('moveend', this.updateSvg);
 
     this.updateSvg();
-    this.repaint();
+    this.repaint(this.props);
+  }
+
+  createLegend() {
+    const sequence = d3.scaleSequential(interpolateYlOrRd)
+      .domain([0, this.legendMax]);
+
+    d3.select(this.legendDiv).selectAll('*').remove();
+    const svg = d3.select(this.legendDiv).append('svg');
+
+    svg.append('g')
+      .attr('class', 'legend')
+      .attr('transform', 'translate(20,20)');
+
+    const legendLinear = d3Legend.legendColor()
+      .shapeWidth(30)
+      .cells(6)
+      .orient('vertical')
+      .scale(sequence);
+
+    svg.select('.legend')
+      .call(legendLinear);
   }
 
   updateSvg() {
@@ -127,9 +144,9 @@ export default class Map extends Component {
       .attr('d', this.path);
   }
 
-  repaint() {
-    // this.updateSvg();
-    this.updateFuncs();
+  repaint(props) {
+    this.updateFuncs(props);
+    this.createLegend();
 
     const join = this.g.select('.counties')
       .selectAll('.county')
@@ -145,19 +162,27 @@ export default class Map extends Component {
       .attr('d', this.path);
   }
 
-  updateFuncs() {
-    if (this.props.menu.time.value === 'sum') {
-      if (this.props.menu.type.value === 'incidents') {
+  updateFuncs(props) {
+    if (props.menu.time.value === 'sum') {
+      if (props.menu.type.value === 'incidents') {
         this.getVal = (d) => d.properties.totals.incidents / maxSupply.maxIncidents;
+        this.legendMax = maxSupply.maxIncidents;
+        d3.select(this.legendDiv).attr('class', 'legend-div medium');
       } else {
         this.getVal = (d) => d.properties.totals.grams / maxSupply.maxGrams;
+        this.legendMax = maxSupply.maxGrams;
+        d3.select(this.legendDiv).attr('class', 'legend-div large');
       }
     } else {
       // monthly
-      if (this.props.menu.type.value === 'incidents') {
-        this.getVal = (d) => d.properties.timedData[this.props.currentTime].incidents / maxSupply.maxIncidentsMonthly;
+      if (props.menu.type.value === 'incidents') {
+        this.getVal = (d) => d.properties.timedData[props.currentTime].incidents / maxSupply.maxIncidentsMonthly;
+        this.legendMax = maxSupply.maxIncidentsMonthly;
+        d3.select(this.legendDiv).attr('class', 'legend-div smaller');
       } else {
-        this.getVal = (d) => d.properties.timedData[this.props.currentTime].grams/ maxSupply.maxGramsMonthly;
+        this.getVal = (d) => d.properties.timedData[props.currentTime].grams/ maxSupply.maxGramsMonthly;
+        this.legendMax = maxSupply.maxGramsMonthly;
+        d3.select(this.legendDiv).attr('class', 'legend-div medium');
       }
     }
   }
@@ -172,6 +197,10 @@ export default class Map extends Component {
         <div
           className="map"
           ref={(div) => { this.mapDiv = div; }}
+        />
+        <div
+          className="legend-div"
+          ref={(div) => { this.legendDiv = div; }}
         />
       </div>  
     );

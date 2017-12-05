@@ -5,7 +5,7 @@ export const menuOptions = {
     { value: 'quantity', label: 'quantity' },
   ],
   time: [
-    { value: 'sum', label: 'sum' },
     { value: 'monthly', label: 'monthly' },
+    { value: 'sum', label: 'sum' },
   ],
 }

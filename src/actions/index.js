@@ -15,3 +15,15 @@ export const county = (payload) => ({
   type: COUNTY,
   payload 
 });
+
+export const WHEEL = 'WHEEL';
+export const wheel = (payload) => ({
+  type: WHEEL,
+  payload
+});
+
+export const SET_WHEEL = 'SET_WHEEL';
+export const setWheel = (payload) => ({
+  type: SET_WHEEL,
+  payload
+});
