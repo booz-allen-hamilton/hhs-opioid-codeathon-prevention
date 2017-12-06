@@ -1,12 +1,18 @@
-import { MENU_TIME, MENU_TYPE, WHEEL, SET_WHEEL } from '../actions';
+import { MENU_TIME, MENU_TYPE, WHEEL, SET_WHEEL, TOGGLE_MENU } from '../actions';
 import { menuOptions } from '../constants';
 
 const menu = (state = {
   type: menuOptions.type[0],
   time: menuOptions.time[0],
   wheel: 0,
+  collapsed: false,
 }, action) => {
   switch (action.type) {
+    case TOGGLE_MENU:
+      return {
+        ...state,
+        collapsed: !state.collapsed,
+      }
     case MENU_TYPE: 
       return {
         ...state,

@@ -1,3 +1,8 @@
+export const TOGGLE_MENU = 'TOGGLE_MENU';
+export const toggleMenu = () => ({
+  type: TOGGLE_MENU,
+});
+
 export const MENU_TYPE = 'MENU_TYPE';
 export const menuType = (payload) => ({
   type: MENU_TYPE,

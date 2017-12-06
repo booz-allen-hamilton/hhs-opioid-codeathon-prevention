@@ -12,11 +12,19 @@ class Menu extends Component {
       handleChangeType,
       handleChangeTime,
       handleProgressClick,
+      toggleCollapse,
       progressRef,
     } = this.props;
 
+    if (menu.collapsed) {
+      return <button onClick={toggleCollapse}>➡</button>
+    }
+
     return (
       <div className="menu">
+        <button onClick={toggleCollapse} className="btn btn-outline-primary btn-block">
+          Collapse ⬅
+        </button>
         <div className="form-group">
           <label>
             type

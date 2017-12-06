@@ -34,6 +34,19 @@ export default class Map extends Component {
         this.repaint(newProps);
       }
     }
+    if (newProps.menu.collapsed !== this.props.menu.collapsed) {
+      console.log('changing');
+
+      const center = this.map.getCenter();
+      const zoom = this.map.getZoom();
+      if (zoom === 7) {
+        if (newProps.menu.collapsed) {
+          this.map.setView([center.lat, center.lng - 2], zoom, {animate: false});
+        } else {
+          this.map.setView([center.lat, center.lng + 2], zoom, {animate: false});
+        }
+      }
+    }
     return false;
   }
 

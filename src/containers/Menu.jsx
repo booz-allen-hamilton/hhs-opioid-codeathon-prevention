@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Menu from '../components/Menu';
-import { menuTime, menuType, wheel, setWheel } from '../actions';
+import { menuTime, menuType, wheel, setWheel, toggleMenu } from '../actions';
 import { calcMonth } from '../utilities';
 
 class MenuContainer extends Component {
@@ -12,12 +12,17 @@ class MenuContainer extends Component {
     this.handleChangeTime = this.handleChangeTime.bind(this);
     this.handleScroll = this.handleScroll.bind(this);
     this.handleProgressClick = this.handleProgressClick.bind(this);
+    this.toggleCollapse = this.toggleCollapse.bind(this);
 
     this.setUpScroll()
   }
 
   componentWillUnmount() {
     document.removeEventListener('wheel', this.handleScroll);
+  }
+
+  toggleCollapse() {
+    this.props.dispatch(toggleMenu());
   }
 
   setUpScroll() {
@@ -53,6 +58,7 @@ class MenuContainer extends Component {
       handleChangeTime: this.handleChangeTime,
       handleChangeType: this.handleChangeType,
       handleProgressClick: this.handleProgressClick,
+      toggleCollapse: this.toggleCollapse,
       progressRef: el => this.progressElement = el,
     }
     return <Menu {...props}/>
