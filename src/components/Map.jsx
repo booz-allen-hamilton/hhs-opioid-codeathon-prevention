@@ -35,8 +35,6 @@ export default class Map extends Component {
       }
     }
     if (newProps.menu.collapsed !== this.props.menu.collapsed) {
-      console.log('changing');
-
       const center = this.map.getCenter();
       const zoom = this.map.getZoom();
       if (zoom === 7) {

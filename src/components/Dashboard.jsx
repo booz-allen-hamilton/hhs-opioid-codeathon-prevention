@@ -5,11 +5,11 @@ import MapLeaflet from '../containers/Map';
 
 export default class Dashboard extends Component {
   render() {
-    let menuClass = 'col-12 col-lg-2 animate';
-    let mapClass = 'col-12 col-lg-10 animate';
+    let menuClass = 'col-12 col-lg-2';
+    let mapClass = 'col-12 col-lg-10';
     if (this.props.menu.collapsed) {
-      menuClass = 'collapsed animate';
-      mapClass = 'expanded animate';
+      menuClass = 'collapsed';
+      mapClass = 'expanded';
     }
     return (
       <div className="container-fluid">
