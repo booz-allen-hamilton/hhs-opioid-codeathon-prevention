@@ -12,6 +12,7 @@ class DisplayContainer extends Component {
 }
 
 const mapStateToProps = (state) => ({
+  collapsed: state.menu.collapsed,
   county: state.county,
 });
 
