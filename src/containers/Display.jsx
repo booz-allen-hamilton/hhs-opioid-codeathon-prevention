@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { investigate } from '../actions';
+import { toggleMenu, investigate } from '../actions';
 import Display from '../components/Display';
 
 class DisplayContainer extends Component {
@@ -11,7 +11,12 @@ class DisplayContainer extends Component {
   }
 
   handleInvestigate() {
-    this.props.dispatch(investigate())
+    if (!this.props.collapsed) {
+      this.props.dispatch(toggleMenu());
+    }
+    window.setTimeout(() => {
+      this.props.dispatch(investigate());
+    }, 1);
   }
 
   render() {

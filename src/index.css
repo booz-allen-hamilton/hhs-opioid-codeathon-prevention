@@ -90,8 +90,8 @@ g.counties > .county:hover {
 
 .display.overlay {
   position: absolute;
-  left: 15px;
-  top: 40px;
+  left: 55px;
+  top: -39px;
   padding: 20px;
   width: 22vw;
   min-width: 125px;
@@ -99,6 +99,7 @@ g.counties > .county:hover {
 
   background-color: white;
   border: 1px solid black;
+  border-radius: 10px;
   opacity: 0.8;
 }
 
@@ -125,10 +126,11 @@ g.counties > .county:hover {
   position: absolute;
   top: 30px;
   left: calc(100% - 200px);
+  height: 190px;
 
-  z-index: 400;
+  z-index: 420;
 
-  border-radius: 5px;
+  border-radius: 10px;
 
   opacity: 0.8;
   background-color: white;
@@ -147,5 +149,55 @@ g.counties > .county:hover {
 }
 
 .legend-div > svg {
-  height: 165px;
+  height: 180px;
+}
+
+.info-div {
+  position: absolute;
+  top: 225px;
+  left: 425px;
+  width: calc(100% - 445px);
+  height: calc(100% - 280px);
+  z-index: 410;
+
+  padding: 20px;
+
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 10px;
+  opacity: 0.8;
+}
+
+.info-div h3 {
+  display: inline-block;
+}
+
+.info-div button {
+  margin-top: -10px;
+  margin-right: 5px;
+}
+.info-div.hidden {
+  display: none;
+}
+
+.info-div .chart {
+  width: 100%;
+  height: calc(100% - 45px);
+}
+
+.info-div svg {
+  margin: 0;
+}
+
+.info-div g > .line{
+  stroke: var(--primary);
+  fill: none;
+}
+
+.axis {
+  shape-rendering: crispEdges;
+}
+
+.tick > text {
+  font-size: 0.8rem;
 }
