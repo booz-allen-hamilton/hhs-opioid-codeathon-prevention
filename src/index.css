@@ -57,12 +57,21 @@ body {
   pointer-events: all;
 }
 
-g.counties > .county {
+.county {
   z-index: 300;
   stroke: black;
   stroke-width: 1px;
   opacity: 0.6;
 
+  pointer-events: all;
+}
+
+.county.active {
+  opacity: 0.99;
+  stroke-width: 2px;
+}
+
+g.counties > .county {
   pointer-events: all;
 }
 
@@ -93,6 +102,14 @@ g.counties > .county:hover {
   opacity: 0.8;
 }
 
+.display.hidden {
+  display: none;
+}
+
+.investigate {
+  margin-top: 2rem;
+}
+
 .progress-clicker {
   width: 100%;
   height: 2rem;
@@ -107,7 +124,8 @@ g.counties > .county:hover {
 .legend-div {
   position: absolute;
   top: 30px;
-  left: calc(100vw - 200px);
+  left: calc(100% - 200px);
+
   z-index: 400;
 
   border-radius: 5px;
@@ -126,4 +144,8 @@ g.counties > .county:hover {
 
 .legend-div.large {
   width: 135px;
+}
+
+.legend-div > svg {
+  height: 165px;
 }

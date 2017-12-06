@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import L from 'leaflet';
 import * as d3 from 'd3';
 import * as d3Legend from 'd3-svg-legend';
-import { interpolateYlOrRd } from 'd3-scale-chromatic';
+// import { interpolateYlOrRd } from 'd3-scale-chromatic';
 
 const supply = require('../data/supply.json');
 const maxSupply = {"maxIncidents":4776,"maxIncidentsMonthly":51,"maxGrams":64702.95599999869,"maxGramsMonthly":2156.083};
@@ -14,6 +14,7 @@ export default class Map extends Component {
     super();
     this.updateSvg = this.updateSvg.bind(this);
     this.fill = this.fill.bind(this);
+    this.countyClick = this.countyClick.bind(this);
   }
 
   getVal(d) {
@@ -44,6 +45,12 @@ export default class Map extends Component {
           this.map.setView([center.lat, center.lng + 2], zoom, {animate: false});
         }
       }
+    }
+    if (newProps.investigate) {
+      this.flyTo(newProps.county)
+    } else if (this.props.investigate) {
+      const lng = this.props.menu.collapsed ? -84 : -82;
+      this.map.setView([39, lng], 7);
     }
     return false;
   }
@@ -101,8 +108,8 @@ export default class Map extends Component {
   }
 
   createLegend() {
-    const sequence = d3.scaleSequential(interpolateYlOrRd)
-      .domain([0, this.legendMax]);
+    const sequence = d3.scaleSequential(d3.interpolateInferno)
+      .domain([this.legendMax, 0]);
 
     d3.select(this.legendDiv).selectAll('*').remove();
     const svg = d3.select(this.legendDiv).append('svg');
@@ -113,7 +120,9 @@ export default class Map extends Component {
 
     const legendLinear = d3Legend.legendColor()
       .shapeWidth(30)
-      .cells(6)
+      .cells(8)
+      // .labelOffset(-50)
+      // .shapePadding(10)
       .orient('vertical')
       .scale(sequence);
 
@@ -169,7 +178,7 @@ export default class Map extends Component {
       .attr('class', 'county')
       .merge(join)
       .attr('fill', this.fill)
-      .on('click', this.props.handleCountyClick)
+      .on('click', this.countyClick)
       .attr('d', this.path);
   }
 
@@ -199,7 +208,34 @@ export default class Map extends Component {
   }
 
   fill(d) {
-    return interpolateYlOrRd(this.getVal(d));
+    return d3.interpolateInferno(1 - this.getVal(d));
+  }
+
+  countyClick(d, i, nodes) {
+    // console.log(this, d, i, nodes[i]);
+
+    this.active = i;
+
+    d3.select('.counties').selectAll('.county')
+      .classed('active', false);
+
+    d3.select(nodes[i]).classed('active', true);
+
+    this.props.handleCountyClick(d, i, nodes);
+  }
+
+  flyTo(county) {
+    const coords1 = county.geometry.coordinates[0][0];
+    const index2 = Math.floor(county.geometry.coordinates[0].length / 2);
+    const coords2 = county.geometry.coordinates[0][index2];
+    const newCoords = {
+      lat: (coords1[1] + coords2[1]) / 2,
+      lng: (coords1[0] + coords2[0]) / 2
+    };
+
+    // console.log(this.map);
+
+    this.map.setView(newCoords, 9.5);
   }
 
   render() {

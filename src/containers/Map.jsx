@@ -27,6 +27,8 @@ class MapContainer extends Component {
 const mapStateToProps = (state) => ({
   menu: state.menu,
   currentTime: calcMonth(state.menu.wheel),
+  investigate: state.investigate,
+  county: state.county,
 });
 
 export default connect(mapStateToProps)(MapContainer);

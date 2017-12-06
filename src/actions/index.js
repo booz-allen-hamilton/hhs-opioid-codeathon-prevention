@@ -32,3 +32,8 @@ export const setWheel = (payload) => ({
   type: SET_WHEEL,
   payload
 });
+
+export const INVESTIGATE = 'INVESTIGATE'
+export const investigate = (payload) => ({
+  type: INVESTIGATE,
+});
