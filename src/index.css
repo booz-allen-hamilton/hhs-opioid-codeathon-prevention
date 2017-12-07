@@ -79,6 +79,17 @@ g.counties > .county:hover {
   cursor: pointer !important;
 }
 
+.flows {
+  z-index: 350;
+}
+.flow {
+  z-index: 350;
+  stroke-width: 0px;
+  opacity: 0.8;
+
+  filter: blur(20px);
+}
+
 .leaflet-top.leaflet-left > .leaflet-control-zoom {
   margin-left: 10px;
   margin-top: 40px;
@@ -125,11 +136,12 @@ g.counties > .county:hover {
 .legend-div {
   position: absolute;
   top: 30px;
-  left: calc(100% - 200px);
+  left: calc(100% - 135px);
   height: 190px;
 
   z-index: 420;
 
+  border: 1px solid black;
   border-radius: 10px;
 
   opacity: 0.8;
@@ -187,11 +199,20 @@ g.counties > .county:hover {
 
 .info-div svg {
   margin: 0;
+  overflow: overlay;
 }
 
-.info-div g > .line{
-  stroke: var(--primary);
+.info-div g > .line {
+  stroke-width: 3px;
   fill: none;
+}
+
+.info-div g > .line-0 {
+  stroke: var(--primary);
+}
+
+.info-div g > .line-1 {
+  stroke: var(--secondary);
 }
 
 .axis {
@@ -200,4 +221,10 @@ g.counties > .county:hover {
 
 .tick > text {
   font-size: 0.8rem;
+}
+
+.axis-label {
+  color: black;
+  text-anchor: middle;
+  z-index: 430;
 }

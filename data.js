@@ -29,25 +29,42 @@ const counties = [
   ...topojson.feature(westVirginia, westVirginia.objects.cb_2015_west_virginia_county_20m).features,
 ];
 
-fs.readFile('./src/data/nibrs_sophie_df_supplyonly.csv', 'utf8', (err, string) => {
-  const data = d3.csvParse(string);
+const p1 = new Promise((resolve, reject) => {
+  fs.readFile('./src/data/nibrs_sophie_df_supplyonly.csv', 'utf8', (err, string) => {
+    if (err) {
+      return reject(err);
+    }
+    const data = d3.csvParse(string);
+    resolve(data);
+  })  
+});
 
-  crunch(data);
-})
+const p2 = new Promise((resolve, reject) => {
+  fs.readFile('./src/data/flow.csv', 'utf8', (err, string) => {
+    if (err) {
+      return reject(err);
+    }
+    const data = d3.csvParse(string);
+    resolve(data);
+  })  
+});
 
 const crunch = (data) => {
   // const uniqueFips = [...new Set(data.map(d => d.FIPSCODE1))];
+  // data[0] = supply
+  // data[1] = flow
+  data[1] = data[1].filter(d => d.flow !== '0');
+
   counties.forEach(county => {
     const fips = `${county.properties.STATEFP}${county.properties.COUNTYFP}`;
 
-    const countyData = data.filter(d => {
-      return d.FIPSCODE1 === fips;
-    });
+    const countyData = data[0].filter(d => d.FIPSCODE1 === fips);
+    const countyFlow = data[1].filter(d => (d.from === fips || d.to === fips));
 
     const timedCountyData = {};
     const total = {
-      incidents: 0,
-      grams: 0,
+      incidents: countyData.length,
+      grams: countyData.map(d => d.total_grams).reduce((total, gram) => total + Number(gram), 0),
     }
 
     months.forEach(month => {
@@ -57,13 +74,12 @@ const crunch = (data) => {
         if (moment(month).isSame(moment(d.incident_date), 'month')) {
           incidents.push(d);
         }
-        total.incidents++;
-        total.grams += Number(d.total_grams);
       });
 
       timedCountyData[month] = {
         incidents: incidents.length,
         grams: incidents.reduce((total, inc) => total + Number(inc.total_grams), 0),
+        flow: countyFlow,
       }
     });
 
@@ -110,3 +126,6 @@ const calcMaxes = (counties) => {
     }
   })
 }
+
+Promise.all([p1, p2])
+  .then(crunch)

@@ -18,7 +18,7 @@ class MapContainer extends Component {
   render() {
     const props = {
       ...this.props,
-      handleCountyClick: this.handleCountyClick
+      handleCountyClick: this.handleCountyClick,
     }
     return <MapLeaflet {...props} />
   }

@@ -3,10 +3,10 @@ import L from 'leaflet';
 import * as d3 from 'd3';
 import * as d3Legend from 'd3-svg-legend';
 import moment from 'moment';
-// import { interpolateYlOrRd } from 'd3-scale-chromatic';
 
 const supply = require('../data/supply.json');
-const maxSupply = {"maxIncidents":4776,"maxIncidentsMonthly":51,"maxGrams":64702.95599999869,"maxGramsMonthly":2156.083};
+const maxSupply = {"maxIncidents":398,"maxIncidentsMonthly":51,"maxGrams":5391.91300000001,"maxGramsMonthly":2156.083};
+const MIN_LOG_VALUE = 0.001;
 
 const concatCode = ({ properties }) => `${properties.STATEFP}${properties.COUNTYFP}`;
 
@@ -53,11 +53,14 @@ export default class Map extends Component {
     if (newProps.investigate) {
       this.flyTo(newProps.county);
       this.showInfoDiv(newProps.county);
-    } else if (this.props.investigate) {
+      this.calcFlows(newProps.county);
+    } else if (this.props.investigate && !newProps.investigate) {
       const lng = this.props.menu.collapsed ? -84 : -82;
       this.map.setView([39, lng], 7);
       d3.select(this.infoDiv).classed('hidden', true);
+      this.stopFlows();
     }
+
     return false;
   }
 
@@ -168,6 +171,9 @@ export default class Map extends Component {
     // redraw paths
     this.g.selectAll('path')
       .attr('d', this.path);
+
+    this.g.selectAll('circle')
+      .attr('d', this.path);
   }
 
   repaint(props) {
@@ -226,20 +232,15 @@ export default class Map extends Component {
   }
 
   flyTo(county) {
-    const coords1 = county.geometry.coordinates[0][0];
-    const index2 = Math.floor(county.geometry.coordinates[0].length / 2);
-    const coords2 = county.geometry.coordinates[0][index2];
-    const newCoords = {
-      lat: (coords1[1] + coords2[1]) / 2 + 0.1,
-      lng: (coords1[0] + coords2[0]) / 2 + 0.4
-    };
+    const newCoords = this.getCentroid(county);
 
-    this.map.setView(newCoords, 9.5);
+    this.map.setView({
+      lat: newCoords.lat + 0.1,
+      lng: newCoords.lng + 0.8,
+    }, 9);
   }
 
   showInfoDiv(county) {
-    console.log('show info', county);
-
     const renderInfoDiv = (county) => `
       <div class="panel">
         <button class="btn btn-success">Model</button>
@@ -258,68 +259,68 @@ export default class Map extends Component {
 
     const bbox = d3.select(this.infoDiv).select('.chart').node().getBoundingClientRect();
     this.chart = {
-      width: bbox.width - 60,
-      height: bbox.height - 60
+      width: bbox.width - 100,
+      height: bbox.height - 50,
     }
 
     this.chart.svg = d3.select(this.infoDiv).select('.chart > svg')
-      .attr('width', this.chart.width + 60)
-      .attr('height', this.chart.height + 60);
+      .attr('width', this.chart.width + 100)
+      .attr('height', this.chart.height + 50);
 
     this.makeChart(county);
   }
 
   makeChart(county) {
-    const margin = 30;
+    const margin = {
+      top: 25,
+      right: 50,
+    };
+
     const { chart } = this;
     const { width, height } = chart;
 
-    county.data = Object.keys(county.properties.timedData).map(key => ({
-      date: moment(key),
-      value: county.properties.timedData[key].incidents,
-    }));
-
-    debugger;
-
+    county.data = this.props.menu.menuOptions.type.map(type => {
+      return Object.keys(county.properties.timedData).map(key => ({
+        date: moment(key),
+        value: type.log ? d3.max([MIN_LOG_VALUE, county.properties.timedData[key][type.value]]) : county.properties.timedData[key][type.value],
+      }))
+    });
     // [
     //   {date: moment('2015-01-01'), value: 1.5},
-    //   {date: moment('2015-02-01'), value: 1.7},
-    //   {date: moment('2015-03-01'), value: 1.8},
-    //   {date: moment('2015-04-01'), value: 1.6},
-    //   {date: moment('2015-05-01'), value: 1.4},
-    //   {date: moment('2015-06-01'), value: 1.2},
-    //   {date: moment('2015-07-01'), value: 1.5},
-    //   {date: moment('2015-08-01'), value: 1.7},
-    //   {date: moment('2015-09-01'), value: 1.9},
-    //   {date: moment('2015-10-01'), value: 2.1},
-    //   {date: moment('2015-11-01'), value: 1.9},
-    //   {date: moment('2015-12-01'), value: 1.7},
     // ]
 
     chart.x = d3.scaleTime().range([0, width]);
-    chart.y = d3.scaleLinear().range([height, 0]);
+    chart.x.domain([county.data[0][0].date, county.data[0][county.data[0].length - 1].date]);
+
+    chart.y = [];
+    chart.yAxis = [];
+    chart.line = [];
+
+    chart.y[0] = d3.scaleLinear().range([height, 0]);
+    chart.y[0].domain([0, d3.max(county.data[0], d => d.value)]).nice();
+
+    chart.y[1] = d3.scaleLog().range([height, 0]);
+    chart.y[1].domain([0.001, d3.max(county.data[1], d => d.value)]).nice();
 
     chart.xAxis = d3.axisBottom(chart.x)
       .tickSize(5)
-    chart.yAxis = d3.axisRight(chart.y)
+    chart.yAxis[0] = d3.axisLeft(chart.y[0])
       .ticks(4);
+    chart.yAxis[1] = d3.axisRight(chart.y[1])
+      .ticks(5, '3,');
 
-    chart.area = d3.area()
-      .curve(d3.curveMonotoneX)
-      .x(d => d.date)
-      .y0(height)
-      .y1(d => d.value );
-
-    chart.line = d3.line()
+    chart.line[0] = d3.line()
       .curve(d3.curveMonotoneX)
       .x(d => chart.x(d.date))
-      .y(d => chart.y(d.value));
+      .y(d => chart.y[0](d.value));
 
-    chart.x.domain([county.data[0].date, county.data[county.data.length - 1].date]);
-    chart.y.domain([0, d3.max(county.data, d => d.value)]).nice();
+    chart.line[1] = d3.line()
+      .curve(d3.curveMonotoneX)
+      .x(d => chart.x(d.date))
+      .y(d => chart.y[1](d.value));
 
     chart.g = this.chart.svg.append('g')
-      .attr('transform', `translate(${margin},${margin})`);
+      .attr('transform', `translate(${margin.right},${margin.top})`);
 
     chart.g.append('g')
       .attr('class', 'x axis')
@@ -331,19 +332,38 @@ export default class Map extends Component {
 
     chart.g.append('g')
       .attr('class', 'y axis')
-      .attr('transform', `translate(${width},0)`)
-      .call(chart.yAxis);
+      .attr('transform', `translate(0,0)`)
+      .call(chart.yAxis[0]);
+
+    chart.g.append('text')
+      .attr('class', 'axis-label')
+      .attr('transform', `rotate(-90, ${-margin.right / 2}, ${chart.height/2})`)
+      .attr('x', -margin.right / 2)
+      .attr('y', chart.height / 2)
+      .text(this.props.menu.menuOptions.type[0].axisLabel);
+
+    chart.g.append('g')
+      .attr('class', 'y axis')
+      .attr('transform', `translate(${chart.width},0)`)
+      .call(chart.yAxis[1]);
+
+    chart.g.append('text')
+      .attr('class', 'axis-label')
+      .attr('transform', `rotate(-90, ${chart.width + margin.right}, ${chart.height/2})`)
+      .attr('x', chart.width + margin.right)
+      .attr('y', chart.height / 2)
+      .text(this.props.menu.menuOptions.type[1].axisLabel);
 
     chart.g.selectAll('.line')
-      .data([county.data])
+      .data(county.data)
       .enter()
       .append('path')
-        .attr('class', 'line')
-        .attr('d', chart.line);
+        .attr('class', (d, i) => `line line-${i}`)
+        .attr('d', (d, i) => chart.line[i](d));
 
     chart.curtain = chart.g.append('rect')
-      .attr('x', -1 * chart.width)
-      .attr('y', -1 * chart.height)
+      .attr('x', -1 * chart.width - 1)
+      .attr('y', -1 * chart.height + 1)
       .attr('height', chart.height)
       .attr('width', chart.width)
       .attr('class', 'curtain')
@@ -355,11 +375,134 @@ export default class Map extends Component {
     d3.select('rect.curtain')
       .attr('width', this.chart.width);
     const t = d3.transition()
-    .duration(1500)
-    .ease(d3.easeLinear);
+      .duration(3000)
+      .ease(d3.easeLinear);
 
     d3.select('rect.curtain').transition(t)
       .attr('width', 0);
+  }
+
+  calcFlows(county) {
+    this.stopFlows();
+
+    const { flow } = county.properties.timedData[this.props.currentTime];
+    const fips = concatCode(county);
+
+    const centroid = this.getCentroid(county);
+
+    const flowFrom = flow.filter(d => d.from === fips);
+    const flowTo = flow.filter(d => d.to === fips);
+
+    const flowData = [
+      ...flowFrom.map(flow => {
+        const latLng2 = this.getLatLng(flow.to);
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [centroid.lng, centroid.lat],
+              [latLng2.lng, latLng2.lat],
+            ]
+          },
+          properties: {
+            flow: flow.flow,
+          }
+        };
+      }),
+      ...flowTo.map(flow => {
+        const latLng1 = this.getLatLng(flow.from);
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [latLng1.lng, latLng1.lat],
+              [centroid.lng, centroid.lat],
+            ]
+          },
+          properties: {
+            flow: flow.flow,
+          }
+        };
+      }),
+    ];
+
+    console.log(county);
+    console.log(flowData);
+
+    this.plotFlows(flowData);
+  }
+
+  plotFlows(data) {
+    const pathStartPoint = (path) => {
+      return path.attr('d').split('L')[0].slice(1).split(',').map(Number);
+    }
+
+    const pathEndPoint = (path) => {
+      return path.attr('d').split('L')[1].split(',').map(Number);
+    }
+
+    // draw some PATHS!!!
+    const paths = this.g.append('g')
+      .attr('class', 'flows')
+      .selectAll('.flow')
+      .data(data)
+      .enter().append('path')
+        .attr('class', 'flow')
+        .attr('d', this.path);
+
+    paths.each((d, i, nodes) => {
+      const transition = () => {
+        marker.transition()
+          .duration(100000 / d.properties.flow)
+          .ease(d3.easeLinear)
+          .attrTween('transform', translateAlong(d3.select(nodes[i])))
+          .on('end', transition);
+      }
+
+      const translateAlong = (path) => {
+        return (i) => (t) => {
+          const p = [
+            t * endPoint[0] + (1 - t) * startPoint[0],
+            t * endPoint[1] + (1 - t) * startPoint[1],
+          ];
+          return `translate(${p})`;
+        }
+      } 
+
+      const startPoint = pathStartPoint(d3.select(nodes[i]));
+      const endPoint = pathEndPoint(d3.select(nodes[i]));
+
+      const marker = d3.select('.flows').append('circle')
+        .attr('r', d.properties.flow / 10)
+        .attr('fill', 'red')
+        .attr('transform', `translate(${startPoint})`);
+
+      transition();
+    })
+
+  }
+
+  stopFlows() {
+    console.log('stop');
+    d3.select('.flows').remove();
+  }
+
+  getLatLng(fips) {
+    const county = supply.find(d => concatCode(d) === fips);
+
+    return this.getCentroid(county);
+  }
+
+  getCentroid(county) {
+    const coords1 = county.geometry.coordinates[0][0];
+    const index2 = Math.floor(county.geometry.coordinates[0].length / 2);
+    const coords2 = county.geometry.coordinates[0][index2];
+    return {
+      lat: (coords1[1] + coords2[1]) / 2,
+      lng: (coords1[0] + coords2[0]) / 2
+    };
   }
 
   render() {

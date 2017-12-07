@@ -6,6 +6,7 @@ const menu = (state = {
   time: menuOptions.time[0],
   wheel: 0,
   collapsed: false,
+  menuOptions,
 }, action) => {
   switch (action.type) {
     case TOGGLE_MENU:
