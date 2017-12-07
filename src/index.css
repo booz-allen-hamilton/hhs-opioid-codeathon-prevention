@@ -7,16 +7,21 @@ body {
 .header {
   height: 50px;
   position: fixed;
-  left: 25%;
+  top: calc(100vh - 60px);
+  left: 15px;
   z-index: 500;
+
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 25px;
   
-  font-weight: 600;
-  text-stroke: 1px white;
-  -webkit-text-stroke: 1px white;
+  font-weight: 900;
 }
 
-.header > h1 {
-  margin-left: 5vw;
+.header > span {
+  margin: 6px 15px;
+
+  vertical-align: -13px;
+  letter-spacing: 1px;
 }
 
 .collapsed {
@@ -230,6 +235,10 @@ circle {
   stroke: var(--danger);
 }
 
+.info-div g > .line-3 {
+  stroke: var(--warning);
+}
+
 .curtain {
 }
 
@@ -242,7 +251,7 @@ svg.line-legend {
 }
 
 .tick > text {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
 }
 
 .axis-label {

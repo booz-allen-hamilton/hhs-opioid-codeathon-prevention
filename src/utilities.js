@@ -13,8 +13,8 @@ export const calcMonth = (wheel) => {
 
 export const concatCode = ({ properties }) => `${properties.STATEFP}${properties.COUNTYFP}`;
 
-export const radiusScale = (flow) => Math.sqrt(flow) + 2;
+export const radiusScale = (flow) => Math.sqrt(flow) / 3 + 2;
 
-export const MAX_FLOW_VALUE = 400;
+export const MAX_FLOW_VALUE = 2500;
 export const colorScale = (flow) => d3.interpolateCool(flow / MAX_FLOW_VALUE);
 

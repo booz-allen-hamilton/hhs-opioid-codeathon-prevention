@@ -40,7 +40,17 @@ const p1 = new Promise((resolve, reject) => {
 });
 
 const p2 = new Promise((resolve, reject) => {
-  fs.readFile('./src/data/flow.csv', 'utf8', (err, string) => {
+  fs.readFile('./src/data/54011.txt', 'utf8', (err, string) => {
+    if (err) {
+      return reject(err);
+    }
+    const data = d3.csvParse(string);
+    resolve(data);
+  })  
+});
+
+const p3 = new Promise((resolve, reject) => {
+  fs.readFile('./src/data/socialMediaCounties.csv', 'utf8', (err, string) => {
     if (err) {
       return reject(err);
     }
@@ -112,11 +122,45 @@ fs.readFile('./src/data/predict-supply.csv', 'utf8', (err, string) => {
   }
 });
 
+fs.readFile('./src/data/narcan_supply.csv', 'utf8', (err, string) => {
+  if (err) {
+    console.log(err);
+  } else {
+    const data = d3.csvParse(string);
+    const cols = ['fips', 'date', 'narcan'];
+    const newData = [];
+
+    let max = 0;
+
+    data.forEach(oldRow => {
+      data.columns.forEach((colName, i) => {
+        // date???
+        if (i === 0 || i === 6) return;
+        max = max < Number(oldRow[colName]) ? Number(oldRow[colName]) : max;
+        newData.push({
+          fips: colName,
+          date: oldRow.month,
+          quantity: oldRow[colName],
+        });
+      });
+    });
+
+    console.log(max);
+
+    fs.writeFile('narcan.json', JSON.stringify(newData), 'utf8', (err) => {
+      if (err) {
+        console.log('err', err);
+      }
+    });
+  }
+});
+
 const crunch = (data) => {
   // const uniqueFips = [...new Set(data.map(d => d.FIPSCODE1))];
   // data[0] = supply
   // data[1] = flow
   data[1] = data[1].filter(d => d.flow !== '0');
+  data[2] = data[2].filter(d => d.social_total !== '0');
 
   counties.forEach(county => {
     const fips = `${county.properties.STATEFP}${county.properties.COUNTYFP}`;
@@ -124,13 +168,16 @@ const crunch = (data) => {
     const countyData = data[0].filter(d => d.FIPSCODE1 === fips);
     const countyFlow = data[1].filter(d => (d.from === fips || d.to === fips));
 
+    const countySocial = data[2].filter(d => (d.fips === fips));
+
     const timedCountyData = {};
     const total = {
       incidents: countyData.length,
       grams: countyData.map(d => d.total_grams).reduce((total, gram) => total + Number(gram), 0),
+      social: countySocial.map(d => d.social_total).reduce((total, social) => total + Number(social), 0),
     }
 
-    months.forEach(month => {
+    months.forEach((month, index) => {
       const incidents = [];
 
       countyData.forEach(d => {
@@ -139,9 +186,12 @@ const crunch = (data) => {
         }
       });
 
+      const datum = countySocial.find(d => Number(d.month) === (index + 1))
+
       timedCountyData[month] = {
         incidents: incidents.length,
         grams: incidents.reduce((total, inc) => total + Number(inc.total_grams), 0),
+        social: datum && datum.social_total,
         flow: countyFlow,
       }
     });
@@ -190,5 +240,8 @@ const calcMaxes = (counties) => {
   })
 }
 
-Promise.all([p1, p2])
+Promise.all([p1, p2, p3])
   .then(crunch)
+  .catch(e => {
+    console.log(e);
+  })

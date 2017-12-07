@@ -14,7 +14,7 @@ export default class Dashboard extends Component {
     return (
       <div className="container-fluid">
         <div className="header">
-          <h1>Hawkins Laboratory</h1>
+          <span>The Hawkins Tool</span>
         </div>
         <div className="row">
           <div className={menuClass}>

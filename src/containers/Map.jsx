@@ -7,8 +7,21 @@ import MapLeaflet from '../components/Map';
 class MapContainer extends Component {
   constructor() {
     super();
+    this.state = {
+      supply: null
+    };
 
     this.handleCountyClick = this.handleCountyClick.bind(this);
+  }
+
+  componentDidMount() {
+    fetch('supply.json')
+      .then(blob => blob.json())
+      .then(data => {
+        this.setState({
+          supply: data,
+        });
+      });
   }
 
   handleCountyClick(d, i, nodes) {
@@ -18,6 +31,7 @@ class MapContainer extends Component {
   render() {
     const props = {
       ...this.props,
+      supply: this.state.supply,
       handleCountyClick: this.handleCountyClick,
     }
     return <MapLeaflet {...props} />

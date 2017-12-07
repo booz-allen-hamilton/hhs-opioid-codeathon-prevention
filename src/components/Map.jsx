@@ -5,15 +5,25 @@ import * as d3Legend from 'd3-svg-legend';
 import moment from 'moment';
 import { concatCode, radiusScale, colorScale } from '../utilities';
 
-const supply = require('../data/supply.json');
 const demand = require('../data/demand.json');
 const predictSupply = require('../data/predict-supply.json');
+const narcan = require('../data/narcan.json');
 
-console.log(predictSupply);
+const maxSupply = {
+  "maxIncidents":398,
+  "maxIncidentsMonthly":51,
+  "maxGrams":5391.91300000001,
+  "maxGramsMonthly":2156.083,
+  "maxSocial":6000,
+  "maxSocialMonthly":500
+};
 
-const maxSupply = {"maxIncidents":398,"maxIncidentsMonthly":51,"maxGrams":5391.91300000001,"maxGramsMonthly":2156.083};
-const minMaxDemand = {min: 0.42, max: 0.68};
 const MIN_LOG_VALUE = 0.001;
+
+const NARCAN_SCALE = 100;
+const MAX_NARCAN = 350;
+
+const WIDTH = document.body.clientWidth;
 
 export default class Map extends Component {
   constructor() {
@@ -32,6 +42,18 @@ export default class Map extends Component {
 
   shouldComponentUpdate(newProps) {
     this.label = newProps.menu.type.label;
+    this.newProps = newProps;
+
+    if (newProps.supply && !this.props.supply) {
+      this.data = newProps.supply;
+      this.begin();
+      return false;
+    }
+
+    if (!this.props.supply) {
+      return false;
+    }
+
     if (newProps.menu.type && newProps.menu.time) {
       if (
         (!this.props.menu.type || !this.props.menu.time) || (
@@ -73,11 +95,7 @@ export default class Map extends Component {
     return false;
   }
 
-  componentDidMount() {
-    this.data = [
-      ...supply
-    ];
-
+  begin() {
     this.createMap();
     this.createCounties();
     this.createLegend();
@@ -110,7 +128,7 @@ export default class Map extends Component {
   }
 
   createCounties() {
-    this.g.append('g')
+    const counties = this.g.append('g')
       .attr('class', 'counties')
       .selectAll('.county')
       .data(this.data, concatCode)
@@ -124,7 +142,12 @@ export default class Map extends Component {
     this.map.on('moveend', this.updateSvg);
 
     this.updateSvg();
-    this.repaint(this.props);
+    this.repaint(this.newProps);
+
+    const nodes = counties.nodes();
+    const node = nodes[58];
+    this.countyClick(this.data[58], 58, nodes)
+
   }
 
   countyTip(d) {
@@ -139,7 +162,7 @@ export default class Map extends Component {
     const svg = d3.select(this.legendDiv).append('svg');
 
     svg.append('text')
-      .attr('x', 5)
+      .attr('x', 10)
       .attr('y', 40)
       .text(this.label);
 
@@ -170,7 +193,7 @@ export default class Map extends Component {
     ];
 
     const gs = svg.selectAll('.legend-item')
-      .data([10, 50, 200, 600])
+      .data([25, 100, 500, 2500])
       .enter()
       .append('g')
       .attr('transform', (d, i) => `translate(30, ${165 - 44 * i})`);
@@ -186,8 +209,8 @@ export default class Map extends Component {
   }
 
   createLineLegend() {
-    const ordinalScale = d3.scaleOrdinal(['#007BFF', '#868e96', '#dc3545'])
-      .domain(['incidents', 'supply', 'demand']);
+    const ordinalScale = d3.scaleOrdinal(['#007BFF', '#868e96', '#dc3545', '#ffc107'])
+      .domain(['incidents', 'supply', 'demand', 'naloxone']);
 
     const svg = d3.select('.line-legend');
     svg.selectAll('*').remove();
@@ -264,11 +287,17 @@ export default class Map extends Component {
   }
 
   updateFuncs(props) {
+    // debugger;
+
     if (props.menu.time.value === 'sum') {
       if (props.menu.type.value === 'incidents') {
         this.getVal = (d) => d.properties.totals.incidents / maxSupply.maxIncidents;
         this.legendMax = maxSupply.maxIncidents;
         d3.select(this.legendDiv).attr('class', 'legend legend-div medium');
+      } else if (props.menu.type.value === 'social') {
+        this.getVal = (d) => d.properties.totals.social / maxSupply.maxSocial;
+        this.legendMax = maxSupply.maxSocial;
+        d3.select(this.legendDiv).attr('class', 'legend legend-div large');
       } else {
         this.getVal = (d) => d.properties.totals.grams / maxSupply.maxGrams;
         this.legendMax = maxSupply.maxGrams;
@@ -280,6 +309,10 @@ export default class Map extends Component {
         this.getVal = (d) => d.properties.timedData[props.currentTime].incidents / maxSupply.maxIncidentsMonthly;
         this.legendMax = maxSupply.maxIncidentsMonthly;
         d3.select(this.legendDiv).attr('class', 'legend legend-div smaller');
+      } else if (props.menu.type.value === 'social') {
+        this.getVal = (d) => d.properties.timedData[props.currentTime].social / maxSupply.maxSocialMonthly;
+        this.legendMax = maxSupply.maxSocialMonthly;
+        d3.select(this.legendDiv).attr('class', 'legend legend-div large');
       } else {
         this.getVal = (d) => d.properties.timedData[props.currentTime].grams/ maxSupply.maxGramsMonthly;
         this.legendMax = maxSupply.maxGramsMonthly;
@@ -305,9 +338,12 @@ export default class Map extends Component {
   flyTo(county) {
     const newCoords = this.getCentroid(county);
 
+    // WIDTH
+    const xOffset = ((WIDTH / 1440) ** 1.2) * 1.5;
+
     this.map.setView({
       lat: newCoords.lat + 0.1,
-      lng: newCoords.lng + 0.8,
+      lng: newCoords.lng + xOffset,
     }, 9);
   }
 
@@ -331,12 +367,12 @@ export default class Map extends Component {
 
     const bbox = d3.select(this.infoDiv).select('.chart').node().getBoundingClientRect();
     this.chart = {
-      width: bbox.width - 100,
+      width: bbox.width - 160,
       height: bbox.height - 50,
     }
 
     this.chart.svg = d3.select(this.infoDiv).select('.chart > svg')
-      .attr('width', this.chart.width + 100)
+      .attr('width', this.chart.width + 160)
       .attr('height', this.chart.height + 50);
 
     this.makeChart(county);
@@ -346,14 +382,14 @@ export default class Map extends Component {
   makeChart(county) {
     const margin = {
       top: 25,
-      right: 50,
+      right: 80,
     };
 
     const { chart } = this;
     const { width, height } = chart;
     const code = concatCode(county);
 
-    county.data = this.props.menu.menuOptions.type.map(type => {
+    county.data = this.props.menu.menuOptions.type.slice(0, 2).map(type => {
       return Object.keys(county.properties.timedData).map(key => ({
         date: moment(key),
         value: type.log ? d3.max([MIN_LOG_VALUE, county.properties.timedData[key][type.value]]) : county.properties.timedData[key][type.value],
@@ -425,8 +461,8 @@ export default class Map extends Component {
 
     chart.g.append('text')
       .attr('class', 'axis-label')
-      .attr('transform', `rotate(-90, ${-margin.right / 2}, ${chart.height/2})`)
-      .attr('x', -margin.right / 2)
+      .attr('transform', `rotate(-90, ${-margin.right / 2 + 15}, ${chart.height/2})`)
+      .attr('x', -margin.right / 2 + 15)
       .attr('y', chart.height / 2)
       .text(this.props.menu.menuOptions.type[0].axisLabel);
 
@@ -480,10 +516,47 @@ export default class Map extends Component {
       chart.g.append('path')
         .attr('class', 'line line-2')
         .attr('d', chart.line[2](county.demand));
+    }
 
-      // chart.g.append('path')
-      //   .attr('class', 'line line-1')
-      //   .attr('d', chart.line[1](county.supplyPredict));
+    const narcanData = narcan.filter(d => d.fips === code);
+
+    if (narcanData.length) {
+      chart.y[3] = d3.scaleLinear().range([height, 0]);
+
+      chart.line[3] = d3.line()
+        .curve(d3.curveMonotoneX)
+        .x(d => chart.x(d.date))
+        .y(d => chart.y[3](d.value));
+
+      let max = 0;
+      county.narcan = narcanData.map(d => {
+        max = max < Number(d.quantity) / NARCAN_SCALE ? Number(d.quantity) / NARCAN_SCALE : max; 
+        return {
+          date: moment(d.date),
+          value: Number(d.quantity) / NARCAN_SCALE,
+        }
+      });
+
+      chart.y[3].domain([0, max]).nice();
+
+      chart.g.append('path')
+        .attr('class', 'line line-3')
+        .attr('d', chart.line[3](county.narcan));
+
+      chart.yAxis[3] = d3.axisLeft(chart.y[3])
+        .ticks(4);
+
+      chart.g.append('g')
+        .attr('class', 'y axis')
+        .attr('transform', `translate(-45,0)`)
+        .call(chart.yAxis[3]);
+
+      chart.g.append('text')
+        .attr('class', 'axis-label')
+        .attr('transform', `rotate(-90, ${-margin.right / 2 - 35}, ${chart.height/2})`)
+        .attr('x', -margin.right / 2 - 35)
+        .attr('y', chart.height / 2)
+        .text('naloxone');
     }
 
     this.chart.width0 = chart.x(moment('2015-12'));
@@ -639,7 +712,7 @@ export default class Map extends Component {
   }
 
   getLatLng(fips) {
-    const county = supply.find(d => concatCode(d) === fips);
+    const county = this.data.find(d => concatCode(d) === fips);
 
     return this.getCentroid(county);
   }

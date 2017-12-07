@@ -5,7 +5,7 @@ const menu = (state = {
   type: menuOptions.type[0],
   time: menuOptions.time[0],
   wheel: 0,
-  collapsed: false,
+  collapsed: true,
   menuOptions,
 }, action) => {
   switch (action.type) {
