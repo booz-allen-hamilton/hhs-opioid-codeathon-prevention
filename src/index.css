@@ -171,8 +171,8 @@ circle {
 }
 
 .flow-legend-div {
-  left: calc(100% - 250px);
-  width: 105px;
+  left: calc(100% - 290px);
+  width: 145px;
 }
 
 .info-div {
@@ -226,12 +226,23 @@ circle {
   stroke: var(--secondary);
 }
 
+.info-div g > .line-2 {
+  stroke: var(--danger);
+}
+
+.curtain {
+}
+
+svg.line-legend {
+  position: absolute;
+}
+
 .axis {
   shape-rendering: crispEdges;
 }
 
 .tick > text {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .axis-label {

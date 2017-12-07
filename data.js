@@ -49,6 +49,69 @@ const p2 = new Promise((resolve, reject) => {
   })  
 });
 
+fs.readFile('./src/data/demand.csv', 'utf8', (err, string) => {
+  if (err) {
+    console.log(err);
+  } else {
+    const data = d3.csvParse(string);
+    const cols = ['fips', 'date', 'quantity'];
+    const newData = [];
+
+    let minDemand = 1;
+    let maxDemand = 0;
+
+    data.forEach(oldRow => {
+      data.columns.forEach((colName, i) => {
+        if (i === 0) return;
+        minDemand = Number(oldRow[colName]) < minDemand ? Number(oldRow[colName]) : minDemand;
+        maxDemand = Number(oldRow[colName]) > maxDemand ? Number(oldRow[colName]) : maxDemand;
+        newData.push({
+          fips: colName,
+          date: oldRow.month,
+          quantity: oldRow[colName],
+        });
+      });
+    });
+
+    console.log('min', minDemand);
+    console.log('max', maxDemand);
+
+    fs.writeFile('demand.json', JSON.stringify(newData), 'utf8', (err) => {
+      if (err) {
+        console.log('err', err);
+      }
+    });
+  }
+});
+
+fs.readFile('./src/data/predict-supply.csv', 'utf8', (err, string) => {
+  if (err) {
+    console.log(err);
+  } else {
+    const data = d3.csvParse(string);
+    const cols = ['fips', 'date', 'quantity'];
+    const newData = [];
+
+    data.forEach(oldRow => {
+      data.columns.forEach((colName, i) => {
+        // date???
+        if (i === 0) return;
+        newData.push({
+          fips: colName,
+          date: oldRow.Date,
+          quantity: oldRow[colName],
+        });
+      });
+    });
+
+    fs.writeFile('predict-supply.json', JSON.stringify(newData), 'utf8', (err) => {
+      if (err) {
+        console.log('err', err);
+      }
+    });
+  }
+});
+
 const crunch = (data) => {
   // const uniqueFips = [...new Set(data.map(d => d.FIPSCODE1))];
   // data[0] = supply

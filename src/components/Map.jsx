@@ -6,7 +6,13 @@ import moment from 'moment';
 import { concatCode, radiusScale, colorScale } from '../utilities';
 
 const supply = require('../data/supply.json');
+const demand = require('../data/demand.json');
+const predictSupply = require('../data/predict-supply.json');
+
+console.log(predictSupply);
+
 const maxSupply = {"maxIncidents":398,"maxIncidentsMonthly":51,"maxGrams":5391.91300000001,"maxGramsMonthly":2156.083};
+const minMaxDemand = {min: 0.42, max: 0.68};
 const MIN_LOG_VALUE = 0.001;
 
 export default class Map extends Component {
@@ -15,6 +21,9 @@ export default class Map extends Component {
     this.updateSvg = this.updateSvg.bind(this);
     this.fill = this.fill.bind(this);
     this.countyClick = this.countyClick.bind(this);
+    this.countyTip = this.countyTip.bind(this);
+
+    this.label = 'incidents';
   }
 
   getVal(d) {
@@ -22,6 +31,7 @@ export default class Map extends Component {
   }
 
   shouldComponentUpdate(newProps) {
+    this.label = newProps.menu.type.label;
     if (newProps.menu.type && newProps.menu.time) {
       if (
         (!this.props.menu.type || !this.props.menu.time) || (
@@ -106,6 +116,7 @@ export default class Map extends Component {
       .data(this.data, concatCode)
       .enter().append('path')
         .attr('class', 'county')
+        .on('mouseover', this.countyTip)
         .attr('d', this.path);
 
     // when leaflet zooms or pans, we need to redraw the paths
@@ -116,6 +127,10 @@ export default class Map extends Component {
     this.repaint(this.props);
   }
 
+  countyTip(d) {
+    console.log(concatCode(d));
+  }
+
   createLegend() {
     const sequence = d3.scaleSequential(d3.interpolateInferno)
       .domain([this.legendMax, 0]);
@@ -123,13 +138,18 @@ export default class Map extends Component {
     d3.select(this.legendDiv).selectAll('*').remove();
     const svg = d3.select(this.legendDiv).append('svg');
 
+    svg.append('text')
+      .attr('x', 5)
+      .attr('y', 40)
+      .text(this.label);
+
     svg.append('g')
       .attr('class', 'legend-1')
-      .attr('transform', 'translate(20,20)');
+      .attr('transform', 'translate(20,60)');
 
     const legendLinear = d3Legend.legendColor()
       .shapeWidth(30)
-      .cells(8)
+      .cells(6)
       .orient('vertical')
       .scale(sequence);
 
@@ -141,6 +161,13 @@ export default class Map extends Component {
     const svg = d3.select(this.flowLegendDiv).append('svg')
       .attr('width', 300)
       .attr('height', 400)
+
+    const text = [
+      'low',
+      'medium',
+      'high',
+      'very high',
+    ];
 
     const gs = svg.selectAll('.legend-item')
       .data([10, 50, 200, 600])
@@ -155,7 +182,29 @@ export default class Map extends Component {
     gs.append('text')
       .attr('x', 30)
       .attr('y', 6)
-      .text(d => d)
+      .text((d, i) => text[i])
+  }
+
+  createLineLegend() {
+    const ordinalScale = d3.scaleOrdinal(['#007BFF', '#868e96', '#dc3545'])
+      .domain(['incidents', 'supply', 'demand']);
+
+    const svg = d3.select('.line-legend');
+    svg.selectAll('*').remove();
+
+    svg.append('g')
+      .attr('class', 'legend-2')
+      .attr('transform', 'translate(50,10)');
+
+    const legendOrdinal = d3Legend.legendColor()
+      .shapeWidth(30)
+      .cells(2)
+      .shapePadding(60)
+      .orient('horizontal')
+      .scale(ordinalScale);
+
+    svg.select('.legend-2')
+      .call(legendOrdinal);
   }
 
   updateSvg() {
@@ -267,6 +316,7 @@ export default class Map extends Component {
       <div class="panel">
         <button class="btn btn-success">Model</button>
         <h3>${county.properties.NAME} County</h3>
+        <svg class="line-legend" />
       </div>
       <div class="chart">
         <svg />
@@ -290,6 +340,7 @@ export default class Map extends Component {
       .attr('height', this.chart.height + 50);
 
     this.makeChart(county);
+    this.createLineLegend();
   }
 
   makeChart(county) {
@@ -300,6 +351,7 @@ export default class Map extends Component {
 
     const { chart } = this;
     const { width, height } = chart;
+    const code = concatCode(county);
 
     county.data = this.props.menu.menuOptions.type.map(type => {
       return Object.keys(county.properties.timedData).map(key => ({
@@ -311,8 +363,21 @@ export default class Map extends Component {
     //   {date: moment('2015-01-01'), value: 1.5},
     // ]
 
+    const supplyData = predictSupply.filter(d => d.fips === code);
+    county.supplyPredict = supplyData.map(d => ({
+      date: moment(d.date, 'M/D/YY'),
+      value: d3.max([MIN_LOG_VALUE, Number(d.quantity)]),
+    }));
+
+    county.data[1] = [...county.data[1], ...county.supplyPredict];
+
+    const xDomain = [
+      moment('2015-01'),
+      moment('2016-04'),
+    ];
+
     chart.x = d3.scaleTime().range([0, width]);
-    chart.x.domain([county.data[0][0].date, county.data[0][county.data[0].length - 1].date]);
+    chart.x.domain(xDomain);
 
     chart.y = [];
     chart.yAxis = [];
@@ -340,6 +405,7 @@ export default class Map extends Component {
       .curve(d3.curveMonotoneX)
       .x(d => chart.x(d.date))
       .y(d => chart.y[1](d.value));
+
 
     chart.g = this.chart.svg.append('g')
       .attr('transform', `translate(${margin.right},${margin.top})`);
@@ -383,25 +449,88 @@ export default class Map extends Component {
         .attr('class', (d, i) => `line line-${i}`)
         .attr('d', (d, i) => chart.line[i](d));
 
-    chart.curtain = chart.g.append('rect')
-      .attr('x', -1 * chart.width - 1)
+    const demandData = demand.filter(d => d.fips === code);
+
+    if (demandData.length) {
+      chart.y[2] = d3.scaleLinear().range([height, 0]);
+
+      chart.line[2] = d3.line()
+        .curve(d3.curveMonotoneX)
+        .x(d => chart.x(d.date))
+        .y(d => chart.y[2](d.value));
+
+      let min = 1;
+      let max = 0;
+      county.demand = demandData.map(d => {
+        min = Number(d.quantity) < min ? Number(d.quantity) : min;
+        max = Number(d.quantity) > max ? Number(d.quantity) : max;
+        return {
+          date: moment(d.date),
+          value: Number(d.quantity),
+        }
+      });
+
+      if ( min === max ) {
+        min = min - 0.1;
+        max = max + 0.1;
+      }
+
+      chart.y[2].domain([min, max]).nice();
+
+      chart.g.append('path')
+        .attr('class', 'line line-2')
+        .attr('d', chart.line[2](county.demand));
+
+      // chart.g.append('path')
+      //   .attr('class', 'line line-1')
+      //   .attr('d', chart.line[1](county.supplyPredict));
+    }
+
+    this.chart.width0 = chart.x(moment('2015-12'));
+    this.chart.width1 = chart.x(moment('2016-04'));
+
+
+    chart.curtain0 = chart.g.append('rect')
+      .attr('x', -1 * this.chart.width0 - 1)
       .attr('y', -1 * chart.height + 1)
       .attr('height', chart.height)
-      .attr('width', chart.width)
-      .attr('class', 'curtain')
+      .attr('width', this.chart.width0)
+      .attr('class', 'curtain curtain-0')
+      .attr('transform', 'rotate(180)')
+      .style('fill', '#ffffff')
+
+    chart.curtain1 = chart.g.append('rect')
+      .attr('x', -1 * this.chart.width1)
+      .attr('y', -1 * chart.height + 1)
+      .attr('height', chart.height)
+      .attr('width', (this.chart.width1 - this.chart.width0))
+      .attr('class', 'curtain curtain-1')
       .attr('transform', 'rotate(180)')
       .style('fill', '#ffffff')
   }
 
   animate() {
-    d3.select('rect.curtain')
-      .attr('width', this.chart.width);
     const t = d3.transition()
       .duration(3000)
       .ease(d3.easeLinear);
 
-    d3.select('rect.curtain').transition(t)
-      .attr('width', 0);
+    const t2 = d3.transition()
+      .duration(5000)
+      .delay(3000)
+      .ease(d3.easeLinear);
+
+    d3.select('rect.curtain-1')
+      .attr('width', (this.chart.width1 - this.chart.width0))
+
+    d3.select('rect.curtain-0')
+      .attr('width', this.chart.width0)
+      .transition(t)
+        .attr('width', 0)
+        .on('end', () => {
+          d3.select('rect.curtain-1')
+            .transition(t2)
+              .attr('width', 0);
+        });
   }
 
   calcFlows(county) {
