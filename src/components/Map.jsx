@@ -3,12 +3,11 @@ import L from 'leaflet';
 import * as d3 from 'd3';
 import * as d3Legend from 'd3-svg-legend';
 import moment from 'moment';
+import { concatCode, radiusScale, colorScale } from '../utilities';
 
 const supply = require('../data/supply.json');
 const maxSupply = {"maxIncidents":398,"maxIncidentsMonthly":51,"maxGrams":5391.91300000001,"maxGramsMonthly":2156.083};
 const MIN_LOG_VALUE = 0.001;
-
-const concatCode = ({ properties }) => `${properties.STATEFP}${properties.COUNTYFP}`;
 
 export default class Map extends Component {
   constructor() {
@@ -50,7 +49,7 @@ export default class Map extends Component {
         }
       }
     }
-    if (newProps.investigate) {
+    if (newProps.investigate && (!this.props.investigate || newProps.county !== this.props.county)) {
       this.flyTo(newProps.county);
       this.showInfoDiv(newProps.county);
       this.calcFlows(newProps.county);
@@ -72,6 +71,7 @@ export default class Map extends Component {
     this.createMap();
     this.createCounties();
     this.createLegend();
+    this.createFlowLegend();
   }
 
   createMap() {
@@ -124,19 +124,38 @@ export default class Map extends Component {
     const svg = d3.select(this.legendDiv).append('svg');
 
     svg.append('g')
-      .attr('class', 'legend')
+      .attr('class', 'legend-1')
       .attr('transform', 'translate(20,20)');
 
     const legendLinear = d3Legend.legendColor()
       .shapeWidth(30)
       .cells(8)
-      // .labelOffset(-50)
-      // .shapePadding(10)
       .orient('vertical')
       .scale(sequence);
 
-    svg.select('.legend')
+    svg.select('.legend-1')
       .call(legendLinear);
+  }
+
+  createFlowLegend() {
+    const svg = d3.select(this.flowLegendDiv).append('svg')
+      .attr('width', 300)
+      .attr('height', 400)
+
+    const gs = svg.selectAll('.legend-item')
+      .data([10, 50, 200, 600])
+      .enter()
+      .append('g')
+      .attr('transform', (d, i) => `translate(30, ${165 - 44 * i})`);
+
+    gs.append('circle')
+      .attr('r', radiusScale)
+      .attr('fill', colorScale)
+
+    gs.append('text')
+      .attr('x', 30)
+      .attr('y', 6)
+      .text(d => d)
   }
 
   updateSvg() {
@@ -172,8 +191,9 @@ export default class Map extends Component {
     this.g.selectAll('path')
       .attr('d', this.path);
 
-    this.g.selectAll('circle')
-      .attr('d', this.path);
+    if (this.flowing) {
+      this.calcFlows(this.county);
+    }
   }
 
   repaint(props) {
@@ -199,22 +219,22 @@ export default class Map extends Component {
       if (props.menu.type.value === 'incidents') {
         this.getVal = (d) => d.properties.totals.incidents / maxSupply.maxIncidents;
         this.legendMax = maxSupply.maxIncidents;
-        d3.select(this.legendDiv).attr('class', 'legend-div medium');
+        d3.select(this.legendDiv).attr('class', 'legend legend-div medium');
       } else {
         this.getVal = (d) => d.properties.totals.grams / maxSupply.maxGrams;
         this.legendMax = maxSupply.maxGrams;
-        d3.select(this.legendDiv).attr('class', 'legend-div large');
+        d3.select(this.legendDiv).attr('class', 'legend legend-div large');
       }
     } else {
       // monthly
       if (props.menu.type.value === 'incidents') {
         this.getVal = (d) => d.properties.timedData[props.currentTime].incidents / maxSupply.maxIncidentsMonthly;
         this.legendMax = maxSupply.maxIncidentsMonthly;
-        d3.select(this.legendDiv).attr('class', 'legend-div smaller');
+        d3.select(this.legendDiv).attr('class', 'legend legend-div smaller');
       } else {
         this.getVal = (d) => d.properties.timedData[props.currentTime].grams/ maxSupply.maxGramsMonthly;
         this.legendMax = maxSupply.maxGramsMonthly;
-        d3.select(this.legendDiv).attr('class', 'legend-div medium');
+        d3.select(this.legendDiv).attr('class', 'legend legend-div medium');
       }
     }
   }
@@ -224,6 +244,8 @@ export default class Map extends Component {
   }
 
   countyClick(d, i, nodes) {
+    this.county = d;
+
     d3.select('.counties').selectAll('.county')
       .classed('active', false);
     d3.select(nodes[i]).classed('active', true);
@@ -428,9 +450,7 @@ export default class Map extends Component {
       }),
     ];
 
-    console.log(county);
-    console.log(flowData);
-
+    this.flowing = true;
     this.plotFlows(flowData);
   }
 
@@ -455,7 +475,7 @@ export default class Map extends Component {
     paths.each((d, i, nodes) => {
       const transition = () => {
         marker.transition()
-          .duration(100000 / d.properties.flow)
+          .duration(2000)
           .ease(d3.easeLinear)
           .attrTween('transform', translateAlong(d3.select(nodes[i])))
           .on('end', transition);
@@ -475,8 +495,8 @@ export default class Map extends Component {
       const endPoint = pathEndPoint(d3.select(nodes[i]));
 
       const marker = d3.select('.flows').append('circle')
-        .attr('r', d.properties.flow / 10)
-        .attr('fill', 'red')
+        .attr('r', radiusScale(d.properties.flow))
+        .attr('fill', colorScale(d.properties.flow))
         .attr('transform', `translate(${startPoint})`);
 
       transition();
@@ -485,8 +505,8 @@ export default class Map extends Component {
   }
 
   stopFlows() {
-    console.log('stop');
     d3.select('.flows').remove();
+    this.flowing = false;
   }
 
   getLatLng(fips) {
@@ -513,8 +533,12 @@ export default class Map extends Component {
           ref={(div) => { this.mapDiv = div; }}
         />
         <div
-          className="legend-div"
+          className="legend-div legend"
           ref={(div) => { this.legendDiv = div; }}
+        />
+        <div
+          className="flow-legend-div legend"
+          ref={(div) => { this.flowLegendDiv = div;}}
         />
         <div
           className="info-div hidden"

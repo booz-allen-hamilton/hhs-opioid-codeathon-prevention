@@ -1,3 +1,4 @@
+import * as d3 from 'd3';
 
 export const calcMonth = (wheel) => {
   const month = Math.floor(wheel / (1001 / 12) ) + 1;
@@ -9,3 +10,11 @@ export const calcMonth = (wheel) => {
 
   return `2015-${string}`;
 }
+
+export const concatCode = ({ properties }) => `${properties.STATEFP}${properties.COUNTYFP}`;
+
+export const radiusScale = (flow) => Math.sqrt(flow) + 2;
+
+export const MAX_FLOW_VALUE = 400;
+export const colorScale = (flow) => d3.interpolateCool(flow / MAX_FLOW_VALUE);
+

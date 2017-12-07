@@ -87,7 +87,11 @@ g.counties > .county:hover {
   stroke-width: 0px;
   opacity: 0.8;
 
-  filter: blur(20px);
+}
+
+circle {
+  stroke: black;
+  stroke-width: 1px;
 }
 
 .leaflet-top.leaflet-left > .leaflet-control-zoom {
@@ -133,19 +137,21 @@ g.counties > .county:hover {
   height: 100%;
 }
 
-.legend-div {
+.legend {
   position: absolute;
   top: 30px;
-  left: calc(100% - 135px);
   height: 190px;
 
   z-index: 420;
 
   border: 1px solid black;
   border-radius: 10px;
-
   opacity: 0.8;
   background-color: white;
+}
+
+.legend-div {
+  left: calc(100% - 135px);
 }
 
 .legend-div.smaller {
@@ -162,6 +168,11 @@ g.counties > .county:hover {
 
 .legend-div > svg {
   height: 180px;
+}
+
+.flow-legend-div {
+  left: calc(100% - 250px);
+  width: 105px;
 }
 
 .info-div {
